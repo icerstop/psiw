@@ -1,0 +1,71 @@
+README dla projektu "Port morski"
+
+Program symuluje działanie portu morskiego, koncentrując się na 
+zarządzaniu zasobami takimi jak holowniki i dokowanie statków. 
+Symulacja jest wielowątkowa, wykorzystując bibliotekę pthread 
+do reprezentowania różnych statków oraz semafory
+do synchronizacji dostępu do zasobów portowych.
+
+Uruchomienie programu:
+
+1. Otworzyć terminal
+2. Przejść do katalogu, w którym znajduje się skrypt 'make.sh' oraz plik źródłowy programu.
+3. Nadać skryptowi 'make.sh' uprawnienia do wykonania (jeśli potrzeba): chmod +x make.sh
+4. Uruchomić skrypt kompilacji 'make.sh' komendą: ./make.sh
+5. Uruchomić skompilowany program komendą: ./port.out
+
+
+Parametry startowe:
+
+MAX_TUGBOATS (domyślnie 10): Definiuje limit holowników w porcie. Zwiększenie tej wartości pozwala na obsługę większej liczby statków równocześnie, ale również zwiększa złożoność zarządzania zasobami.
+MAX_DOCKS (domyślnie 5): Określa liczbę dostępnych doków. Większa liczba doków umożliwia jednoczesne dokowanie większej liczby statków.
+SHIP_COUNT (domyślnie 15): Liczba statków w symulacji. Wpływa na długość i złożoność symulacji.
+TUGBOAT_CAPACITY (domyślnie 200): Maksymalna waga obsługiwana przez pojedynczy holownik. Jest to kluczowy parametr wpływający na obliczanie liczby holowników potrzebnych do obsłużenia każdego statku.
+TIMEOUT_SECONDS (domyślnie 5): Czas oczekiwania w sekundach, po którym statek ponownie próbuje uzyskać dostęp do zasobów, jeśli wcześniejsza próba była nieudana.
+
+Opis programu:
+
+Struktury:
+
+Ship: Struktura zawierająca identyfikator (ID) statku, jego wagę, liczbę potrzebnych holowników oraz status dokowania (czy statek jest zadokowany czy nie).
+Port: Struktura zawierająca dwa semafory - jeden kontrolujący dostęp do holowników (tugboats) i drugi kontrolujący dostęp do doków (docks).
+Wątki:
+
+Każdy statek jest reprezentowany przez osobny wątek. Wątki te są tworzone w głównej funkcji programu (main) i każdy z nich wykonuje funkcję ship_routine, która symuluje działanie statku.
+
+Semafor:
+
+Używane do synchronizacji dostępu do zasobów portowych. Semafor tugboats kontroluje dostęp do holowników, a docks kontroluje dostęp do doków.
+
+
+Mechanika Symulacji:
+
+
+Semafor Holowników (tugboats):
+
+Używany do kontrolowania dostępu do ograniczonej liczby holowników w porcie.
+Wątek statku próbuje "podnieść" semafor (sem_trywait), aby zarezerwować holownik. Jeśli semafor wskazuje, że holowniki są dostępne, statek kontynuuje proces dokowania.
+Po zakończeniu dokowania, wątek "opuszcza" semafor (sem_post), zwalniając holownik dla innych statków.
+
+
+Semafor Doków (docks):
+
+Kontroluje dostęp do ograniczonej liczby doków w porcie.
+Wątki statków próbują "podnieść" semafor (sem_trywait), aby zająć doki. Jeśli doki są dostępne, semafor pozwala na ich zajęcie.
+Po opuszczeniu doku, statek "opuszcza" semafor (sem_post), czyniąc doki dostępnymi dla innych statków.
+
+
+Proces Dokowania:
+
+Każdy statek (wątek) stara się uzyskać dostęp do doku i odpowiedniej liczby holowników. Dzięki semaforom, dostęp do tych zasobów jest synchronizowany między różnymi wątkami.
+Jeśli statek uzyska dostęp do wszystkich potrzebnych zasobów, symulowane jest dokowanie. Statek "zajmuje" doki i holowniki na losowy czas, a następnie zwalnia te zasoby, symulując jego odpłynięcie.
+
+
+Ponawianie prób dostępu do zasobów:
+
+W przypadku niepowodzenia w uzyskaniu dostępu do zasobów, statek zwalnia zajęte zasoby i oczekuje przez okres zdefiniowany w TIMEOUT_SECONDS przed ponowną próbą dokowania.
+
+
+Zakończenie symulacji:
+
+Symulacja kończy się, gdy wszystkie statki zostaną obsłużone, co oznacza, że wszystkie wątki reprezentujące statki zakończą swoje działanie.
